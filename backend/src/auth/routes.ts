@@ -68,3 +68,62 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         res.status(500).json({ error: 'Internal server error.' });
     }
 });
+
+// login
+router.post('/login', async (req: Request, res: Response):
+    Promise<void> => {
+    const { email, password } = req.body;
+
+    // input validation
+    if (!email || !password) {
+        res.status(400).json({ error: 'Email and password are required.' });
+        return;
+    }
+
+    try {
+        // find user by email
+        const result = await query(
+            'SELECT id, email, password_hash, full_name FROM users WHERE email = $1', [email]
+        );
+        if (!result.rowCount || result.rowCount === 0) {
+            res.status(401).json({ error: 'Invalid email or password.' });
+            return;
+        }
+
+        const user = result.rows[0];
+
+        // 3. Compare submitted password against stored hash
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            res.status(401).json({ error: 'Invalid email or password.' });
+            return;
+        }
+
+        // 4. Sign a JWT token
+        const secret = process.env.JWT_SECRET as string;
+        const tokenOptions: SignOptions = {
+            expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+        };
+        const token = jwt.sign(
+            { userId: user.id, email: user.email },
+            secret,
+            tokenOptions
+        );
+
+
+        res.status(200).json({
+            message: 'Login successful.',
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                full_name: user.full_name,
+            },
+        });
+    } catch (err) {
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+export default router;
