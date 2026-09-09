@@ -60,3 +60,32 @@ router.post('/', async (req: AuthenticatedRequest, res: Response):
         res.status(500).json({ error: 'Internal server error.' });
     }
 });
+
+// GET api/projects/:id
+router.get('/:id', async (req: AuthenticatedRequest, res: Response):
+
+    Promise<void> => {
+    const { id } = req.params;
+    const userId = req.user!.userId;
+
+    try {
+        const result = await query(
+            `SELECT p.id, p.name, p.description, p.jira_project_key, p.created_at
+            FROM projects p
+            WHERE p.id = $1 AND p.created_by = $2`,
+            [id, userId]
+        );
+
+        if (!result.rowCount || result.rowCount === 0) {
+            res.status(404).json({ error: 'Project not found.' });
+            return;
+        }
+
+        res.status(200).json({ project: result.rows[0] });
+    } catch (err) {
+        console.error('Get project error:', err);
+        res.status(500).json({ error: 'Internal server error.' });
+    }
+});
+
+export default router;
