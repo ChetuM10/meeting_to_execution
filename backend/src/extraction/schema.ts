@@ -1,6 +1,4 @@
-import { configDotenv } from 'dotenv';
-import { Content } from 'openai/resources/containers/files/content';
-import { TypeOf, z } from 'zod';
+import { z } from 'zod';
 
 export const DecisionSchema = z.object({
     content: z.string().min(1),
@@ -27,7 +25,6 @@ export const ExtractionSchema = z.object({
     action_items: z.array(ActionItemSchema),
     open_questions: z.array(OpenQuestionSchema),
 });
-
 
 export type Decision = z.infer<typeof DecisionSchema>;
 export type ActionItem = z.infer<typeof ActionItemSchema>;
