@@ -11,7 +11,7 @@ export const ActionItemSchema = z.object({
     owner: z.string().nullable(),
     deadline: z.string().nullable(),
     confidence: z.number().min(0).max(1),
-    ambiguity_flags: z.array(z.string()),
+    ambiguity_flags: z.array(z.string()).default([]),
 });
 
 export const OpenQuestionSchema = z.object({

@@ -6,6 +6,5 @@ dist/
 .env.local
 .env.production
 
-# Logs
 logs/
 *.log
