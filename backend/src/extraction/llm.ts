@@ -1,73 +1,133 @@
-import OpenAI from "openai";
-import { zodResponseFormat } from 'openai/helpers/zod';
+import { GoogleGenAI, Type } from '@google/genai';
+import { ZodError } from 'zod';
 import { ExtractionSchema, ExtractionResult } from './schema';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+let aiClient: GoogleGenAI | null = null;
 
+function getGeminiClient(): GoogleGenAI {
+    if (!aiClient) {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY is not defined in environment variables.');
+        }
+        aiClient = new GoogleGenAI({ apiKey });
+    }
+    return aiClient;
+}
+
+// Behavioral guidance only — field names/types are enforced server-side via responseSchema below.
 const SYSTEM_PROMPT = `
-You are an expert AI meeting assistant and project manager. Analyze the
-meeting transcript and extract structured information. If nothing
-qualifies for a category, return an empty array — never invent items to
-fill the schema.
+You are an expert AI meeting assistant and project manager. Analyze the meeting transcript and extract structured information.
 
-1. DECISIONS
-   - A decision is an explicit agreement or commitment made by
-     participants — not a proposal, suggestion, or idea left unresolved.
-   - source_quote: the exact verbatim sentence(s) from the transcript.
-     Do not paraphrase or summarize.
-   - confidence (0-1): 1.0 = explicit and unambiguous ("we've decided to
-     ship X"); lower for decisions that are implied or only partially
-     confirmed.
-
-2. ACTION ITEMS
-   - A concrete task someone committed to doing — not a hypothetical
-     ("we could maybe...") or a topic merely discussed.
-   - source_quote: exact verbatim sentence(s) the task was drawn from.
-   - owner: the person named as responsible, else null.
-   - deadline: an explicit date/timeframe as stated verbatim (do not
-     resolve relative dates like "next Friday" yourself unless the
-     meeting date is provided in context); else null.
-   - confidence (0-1), same calibration as above.
-   - ambiguity_flags: any of [missing_owner, vague_deadline, vague_scope]
-     — only these values, omit the field entirely if none apply.
-
-3. OPEN QUESTIONS
-   - A question raised that had no answer by the end of the transcript.
-   - source_quote: exact verbatim sentence(s).
-   - status: "open".
+Guidelines:
+- DECISIONS: explicit agreements or commitments only — not proposals or unresolved ideas.
+  source_quote must be exact verbatim text from the transcript.
+  confidence: 1.0 = explicit and unambiguous; lower for implied or partially confirmed.
+- ACTION ITEMS: concrete tasks someone committed to — not hypotheticals or topics discussed.
+  owner = person responsible or null. deadline = verbatim date/timeframe or null.
+  ambiguity_flags: use "missing_owner", "vague_deadline", or "vague_scope" as applicable; empty array if none.
+- OPEN QUESTIONS: questions raised with no answer by end of transcript. status must be "open".
+- If nothing qualifies for a category, return an empty array — never invent items.
 `;
 
-export async function extractFromTranscript(transcript: string):
-    Promise<ExtractionResult> {
+// Gemini native responseSchema — enforced server-side, not prompt-hoped.
+const RESPONSE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        decisions: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    content: { type: Type.STRING },
+                    confidence: { type: Type.NUMBER },
+                    source_quote: { type: Type.STRING },
+                },
+                required: ['content', 'confidence', 'source_quote'],
+            },
+        },
+        action_items: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    task: { type: Type.STRING },
+                    owner: { type: Type.STRING, nullable: true },
+                    deadline: { type: Type.STRING, nullable: true },
+                    confidence: { type: Type.NUMBER },
+                    ambiguity_flags: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['task', 'owner', 'deadline', 'confidence', 'ambiguity_flags'],
+            },
+        },
+        open_questions: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    question: { type: Type.STRING },
+                    status: { type: Type.STRING },
+                },
+                required: ['question', 'status'],
+            },
+        },
+    },
+    required: ['decisions', 'action_items', 'open_questions'],
+};
+
+// Distinct error types so the caller (LangGraph node) can branch on failure kind.
+export class SchemaValidationError extends Error {
+    constructor(public zodError: ZodError) {
+        super('Extraction result failed schema validation.');
+        this.name = 'SchemaValidationError';
+    }
+}
+
+export class LLMProviderError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'LLMProviderError';
+    }
+}
+
+export async function extractFromTranscript(transcript: string): Promise<ExtractionResult> {
     if (!transcript || transcript.trim().length === 0) {
         throw new Error('Transcript text cannot be empty.');
     }
 
+    const ai = getGeminiClient();
+
+    let responseText: string | undefined;
     try {
-        const completion = await openai.beta.chat.completions.parse({
-            model: 'gpt-4o-mini',
-            temperature: 0,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: `Analyze the following meeting transcript:\n\n${transcript}` },
-            ],
-            response_format: zodResponseFormat(ExtractionSchema, 'extraction_result'),
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.6-flash',
+            config: {
+                systemInstruction: SYSTEM_PROMPT,
+                temperature: 0,
+                responseMimeType: 'application/json',
+                responseSchema: RESPONSE_SCHEMA,
+            },
+            contents: `Analyze the following meeting transcript:\n\n${transcript}`,
         });
-        const choice = completion.choices[0];
-
-        if (choice?.message?.refusal) {
-            throw new Error(`LLM Refused Request: ${choice.message.refusal}`);
-        }
-        const parsed = choice?.message?.parsed;
-        if (!parsed) {
-            throw new Error('LLM failed to return structured extraction result.');
-        }
-        return parsed;
+        responseText = response.text;
     } catch (error: any) {
+        // Network/rate-limit/provider-side failure — retry-with-backoff territory.
+        throw new LLMProviderError(error?.message || 'Gemini API call failed.');
+    }
 
-        console.error('Error during transcript extraction:', error?.message || error);
-        throw new Error(`Extraction failed: ${error?.message || 'Unknown error'}`);
+    if (!responseText) {
+        throw new LLMProviderError('Gemini API returned an empty response.');
+    }
+
+    const rawJson = JSON.parse(responseText);
+
+    try {
+        return ExtractionSchema.parse(rawJson);
+    } catch (error) {
+        // Schema mismatch despite server-side enforcement — repair/retry loop territory.
+        if (error instanceof ZodError) {
+            throw new SchemaValidationError(error);
+        }
+        throw error;
     }
 }
