@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { HistoricalContext } from './history';
 import { ExtractionResult } from "./schema";
 
-// previous open que resolved
+// what the resolved question should contain
 export interface ResolvedQuestion {
     open_question_id: string; //old id of open_quesiton row
     resolved_by_content: string; //cont3ent of the new decision which resoleved it
@@ -68,8 +68,8 @@ export async function resolveOpenQuestions(
     NEW DECISIONS made in the latest meeting:
     ${decisionList}
 
-    Task: For each open question that is clearly answered by one of the new     decision, return a match.
-    Only match if there is a clear. unambiguous resolution - do not guess.
+    Task: For each open question that is clearly answered by one of the new decision, return a match.
+    Only match if there is a clear, unambiguous resolution - do not guess.
     If no questions are resolved, return an empty "resolved" array.
     `.trim();
 

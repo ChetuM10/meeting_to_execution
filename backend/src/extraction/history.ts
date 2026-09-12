@@ -30,15 +30,15 @@ export async function fetchHistoricalContext(
             `SELECT id, question, meeting_id, created_at
             FROM open_questions
             WHERE project_id = $1
-            AND status = 'open
+            AND status = 'open'
             ORDER BY created_at ASC`,
             [project_id]
         ),
         query<HistoricalDecision>(
-            `SELECT id, content, confidence, source_quote, meeting_idm created_at
+            `SELECT id, content, confidence, source_quote, meeting_id, created_at
             FROM decisions
             WHERE project_id = $1
-            AND status = 'active
+            AND status = 'active'
             ORDER BY created_at ASC`,
             [project_id]
         ),
