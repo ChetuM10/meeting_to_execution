@@ -1,8 +1,7 @@
-import { ReinforcementTuningThinkingLevel } from "@google/genai";
 import { WorkflowState } from "../state";
 const MIN_TRANSCRIPT_LENGTH = 50;
 
-// validates if the transcript contains meaningful content
+// Node: 1 - validates if the transcript contains meaningful content
 export async function validateTranscript(
     state: WorkflowState
 ): Promise<Partial<WorkflowState>> {
