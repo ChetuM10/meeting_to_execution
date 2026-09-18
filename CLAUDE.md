@@ -1,4 +1,4 @@
-﻿# CLAUDE.md — Meeting-to-Execution Copilot
+# CLAUDE.md — Meeting-to-Execution Copilot
 
 This file is the single source of truth for how this project is built.
 Every architectural decision, schema, API, and build rule is locked here.
@@ -371,7 +371,7 @@ On `POST /meetings`, hash the raw transcript. If `(project_id, transcript_hash)`
 
 | #   | Milestone                                                                             | Status      |
 | --- | ------------------------------------------------------------------------------------- | ----------- |
-| 1   | Postgres schema + auth + workspace/project/meeting CRUD (no AI yet)                   | NOT STARTED |
+| 1   | Postgres schema + auth + workspace/project/meeting CRUD (no AI yet)                   | DONE        |
 | 2   | Extraction function in isolation (LLM call + Zod validation, no graph yet)            | NOT STARTED |
 | 3   | Cross-meeting memory: historical context fetch + open-question resolution logic       | NOT STARTED |
 | 4   | Wrap in LangGraph.js — full graph with retry loop + interrupt node                    | NOT STARTED |

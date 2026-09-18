@@ -119,7 +119,12 @@ export async function extractFromTranscript(transcript: string): Promise<Extract
         throw new LLMProviderError('Gemini API returned an empty response.');
     }
 
-    const rawJson = JSON.parse(responseText);
+    let rawJson: unknown;
+    try {
+        rawJson = JSON.parse(responseText);
+    } catch (error) {
+        throw new LLMProviderError('Gemini returned invalid JSON despite responseSchema.');
+    }
 
     try {
         return ExtractionSchema.parse(rawJson);
