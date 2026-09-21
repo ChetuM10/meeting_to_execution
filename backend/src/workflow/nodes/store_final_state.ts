@@ -57,7 +57,7 @@ export async function storeFinalStateNode(
         for (const a of extraction.action_items) {
             await query(
                 `INSERT INTO action_items
-                (project_id, meeting_id, workflow_run_id, task, owner, dealine, confidence, ambiguity_flags)
+                (project_id, meeting_id, workflow_run_id, task, owner, deadline, confidence, ambiguity_flags)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
                 [
                     state.project_id,
@@ -77,7 +77,7 @@ export async function storeFinalStateNode(
             await query(
                 `INSERT INTO open_questions
                 (project_id, meeting_id, workflow_run_id, question, status)
-                VALUES ($1, $2, $3, $4, 'open)`,
+                VALUES ($1, $2, $3, $4, 'open')`,
                 [state.project_id, meetingId, state.workflow_id, q.question]
             );
         }

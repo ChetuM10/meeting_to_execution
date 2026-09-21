@@ -5,12 +5,7 @@ import {
     LLMProviderError,
 } from '../../extraction/llm';
 
-/**
- * Node 3: Calls Gemini LLM to extract decisions, action items, and
- * open questions from the transcript. Distinguishes between:
- *   - SchemaValidationError → write validation_error (graph routes to retry loop)
- *   - LLMProviderError      → write error (graph routes to END)
- */
+//Node: 3 - Calls LLM to extract decisions, action items, and open questions from the transcript.
 export async function extractStructuredInfoNode(
     state: WorkflowState
 ): Promise<Partial<WorkflowState>> {

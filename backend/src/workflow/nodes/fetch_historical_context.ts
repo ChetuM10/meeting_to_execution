@@ -2,7 +2,7 @@ import { WorkflowState } from "../state";
 import { fetchHistoricalContext } from "../../extraction/history";
 
 // Node: 2 - loads open questions and active decisions from earlier meetings
-export async function fetchHistoricalContext(
+export async function fetchHistoricalContextNode(
     state: WorkflowState
 ): Promise<Partial<WorkflowState>> {
     try {
