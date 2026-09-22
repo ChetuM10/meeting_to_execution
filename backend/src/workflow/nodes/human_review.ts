@@ -6,9 +6,9 @@ export async function humanReviewNode(
     state: WorkflowState
 ): Promise<Partial<WorkflowState>> {
     console.log(
-        `[human_review] Interrupting for human review.` +
-        `${state.proposed_action.length} proposed action(s),` +
-        `${state.ambiguity_flags} ambiguity flag(s).`
+        `[human_review] Interrupting for human review. ` +
+        `${state.proposed_action.length} proposed action(s), ` +
+        `${state.ambiguity_flags.length} ambiguity flag(s).`
     );
 
     // interrupt() pauses the graph and wait for the user

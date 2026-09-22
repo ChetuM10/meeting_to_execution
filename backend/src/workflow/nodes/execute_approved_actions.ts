@@ -6,7 +6,7 @@ export async function executeApprovedActionsNode(
 ): Promise<Partial<WorkflowState>> {
     if (state.review_status !== 'approved') {
         console.log(
-            `[execute_aproved_actions] Review status is '${state.review_status}', skipping execution.`
+            `[execute_approved_actions] Review status is '${state.review_status}', skipping execution.`
         );
         return {
             execution_result: []
@@ -17,7 +17,7 @@ export async function executeApprovedActionsNode(
     const actionsToExecute = state.edited_actions ?? state.proposed_action;
 
     console.log(
-        `[execute_aproved_actions] Executing ${actionsToExecute.length} action(s)...`
+        `[execute_approved_actions] Executing ${actionsToExecute.length} action(s)...`
     );
 
     // Simulate Jira ticket creation
@@ -31,7 +31,7 @@ export async function executeApprovedActionsNode(
         return {
             action_id: action.id,
             status: 'success',
-            jira_project_key: mockTicketKey,
+            jira_issue_key: mockTicketKey,
         };
     });
 
