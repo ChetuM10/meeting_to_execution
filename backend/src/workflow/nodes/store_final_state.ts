@@ -28,7 +28,7 @@ export async function storeFinalStateNode(
 
         if (wfCheck.rowCount === 0) {
             console.warn(
-                `[stoe_final_state] Workflow run ${state.workflow_id} not found in DB. Skipping DB persistence (offlice test mode).`
+                `[store_final_state] Workflow run ${state.workflow_id} not found in DB. Skipping DB persistence (offline test mode).`
             );
             return {};
         }
@@ -37,11 +37,13 @@ export async function storeFinalStateNode(
         const extraction = state.validated_extraction;
 
         // 1 - Insert decisions
+        const decisionIdByContent = new Map<string, number>();
         for (const d of extraction.decisions) {
-            await query(
+            const res = await query(
                 `INSERT INTO decisions
                 (project_id, meeting_id, workflow_run_id, content, confidence, source_quote)
-                VALUES ($1, $2, $3, $4, $5, $6)`,
+                VALUES ($1, $2, $3, $4, $5, $6)
+                RETURNING id`,
                 [
                     state.project_id,
                     meetingId,
@@ -51,6 +53,7 @@ export async function storeFinalStateNode(
                     d.source_quote,
                 ]
             );
+            decisionIdByContent.set(d.content, res.rows[0].id);
         }
 
         // 2- Insert action items
@@ -85,11 +88,12 @@ export async function storeFinalStateNode(
         // 4. Mark resolved questions from past meetings
         if (state.resolved_question && state.resolved_question.length > 0) {
             for (const rq of state.resolved_question) {
+                const decisionId = decisionIdByContent.get(rq.resolved_by_content);
                 await query(
                     `UPDATE open_questions 
-                    SET status = 'resolved' 
+                    SET status = 'resolved', resolved_by_decision_id = $2 
                     WHERE id = $1`,
-                    [rq.open_question_id]
+                    [rq.open_question_id, decisionId ?? null]
                 );
             }
         }
