@@ -22,7 +22,7 @@ export interface proposedAction {
 export interface ExecutionResult {
     action_id: string;
     status: 'success' | 'failure' | 'skipped';
-    jira_project_key?: string;
+    jira_issue_key?: string;
     error?: string;
 }
 

@@ -18,9 +18,9 @@ export async function verifyResultsNode(
     let failedCount = 0;
 
     for (const result of results) {
-        if (result.status === 'success' && result.jira_project_key) {
+        if (result.status === 'success' && result.jira_issue_key) {
             console.log(
-                `[verify_results] Confirmed Jira issue ${result.jira_project_key} exists.`
+                `[verify_results] Confirmed Jira issue ${result.jira_issue_key} exists.`
             );
         } else {
             failedCount++;
