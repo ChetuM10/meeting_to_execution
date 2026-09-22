@@ -100,7 +100,7 @@ export async function extractFromTranscript(transcript: string): Promise<Extract
     let responseText: string | undefined;
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3.6-flash',
+            model: 'gemini-3.5-flash-lite',
             config: {
                 systemInstruction: SYSTEM_PROMPT,
                 temperature: 0,
