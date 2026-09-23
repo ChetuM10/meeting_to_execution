@@ -1,6 +1,7 @@
 import { StateGraph, END, START } from '@langchain/langgraph';
 import { WorkflowAnnotation, WorkflowState } from './state';
 import { checkpointer } from './checkpointer';
+import { query } from '../db/connection';
 
 import { validateTranscript } from './nodes/validate_transcript';
 import { fetchHistoricalContextNode } from './nodes/fetch_historical_context';
@@ -76,6 +77,36 @@ export const graph = workflow.compile({
     interruptBefore: ['human_review'],
 });
 
+// reads the current graph state from the checkpointer
+export async function getWorkflowState(
+    workflowId: string
+): Promise<WorkflowState | null> {
+    try {
+        const state = await graph.getState({
+            configurable: { thread_id: workflowId },
+        });
+
+        if (!state || !state.values) return null;
+        return state.values as WorkflowState;
+    } catch (err) {
+        console.error(`[graph] Failed to read state for ${workflowId}:`, err);
+        return null;
+    }
+}
+
+// updates workflow_runs.state in PostgreSQL so that frontend the it 
+// repeatedly checks for update instead of waiting the backend to push an update(polling)
+
+async function updateWorkflowStatus(
+    workflowId: string,
+    status: string
+): Promise<void> {
+    await query(
+        `UPDATE workflow_runs SET status = $1, updated_at = NOW() where id = $2`,
+        [status, workflowId]
+    );
+}
+
 export async function runWorkflow(
     transcript: string,
     projectId: string,
@@ -83,18 +114,30 @@ export async function runWorkflow(
 ) {
     const threadId = workflowId; // workflow_run UUID as thread ID
 
-    const result = await graph.invoke(
-        {
-            transcript,
-            project_id: projectId,
-            workflow_id: workflowId,
-        },
-        {
-            configurable: { thread_id: threadId },
-        }
-    );
+    try {
+        const result = await graph.invoke(
+            {
+                transcript,
+                project_id: projectId,
+                workflow_id: workflowId,
+            },
+            {
+                configurable: { thread_id: threadId },
+            }
+        );
 
-    return result;
+        if (result.error) {
+            await updateWorkflowStatus(workflowId, 'failed');
+        } else {
+            await updateWorkflowStatus(workflowId, 'pending_review');
+        }
+
+        return result;
+    } catch (err) {
+        console.error(`[graph] Workflow ${workflowId} failed:`, err);
+        await updateWorkflowStatus(workflowId, 'failed');
+        throw err;
+    }
 }
 
 // resumes paused workflow after review
@@ -105,17 +148,29 @@ export async function resumeWorkflow(
 ) {
     const { Command } = await import('@langchain/langgraph');
 
-    const result = await graph.invoke(
-        new Command({
-            resume: {
-                decision,
-                edited_actions: editedActions ?? null,
-            },
-        }),
-        {
-            configurable: { thread_id: workflowId },
-        }
-    );
+    try {
+        const result = await graph.invoke(
+            new Command({
+                resume: {
+                    decision,
+                    edited_actions: editedActions ?? null,
+                },
+            }),
+            {
+                configurable: { thread_id: workflowId },
+            }
+        );
 
-    return result;
+        if (decision === 'rejected') {
+            await updateWorkflowStatus(workflowId, 'rejected');
+        } else {
+            await updateWorkflowStatus(workflowId, 'completed');
+        }
+
+        return result;
+    } catch (err) {
+        console.error(`[graph] Resume failed for ${workflowId}:`, err);
+        await updateWorkflowStatus(workflowId, 'failed');
+        throw err;
+    }
 }
