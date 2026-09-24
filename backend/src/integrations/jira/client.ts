@@ -67,11 +67,49 @@ export async function createJiraIssue(
         );
     }
 
-    const data = await response.json() as JiraIssueResult;
+    const data: any = await response.json();
 
     return {
         key: data.key,
         id: data.id,
         self: data.self,
+    };
+}
+
+// verify if a ticket exists by fetching it by key
+export async function verifyJiraIssue(
+    credentials: JiraCredentials,
+    issueKey: string
+): Promise<{ exists: boolean, status?: string }> {
+    const baseUrl = `https://${credentials.domain}.atlassian.net`;
+    const url = `${baseUrl}/rest/api/3/issue/${issueKey}?fields=status`;
+
+    const authHeader = 'Basic ' + Buffer.from(
+        `${credentials.email}:${credentials.apiToken}`
+    ).toString('base64');
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': authHeader,
+            'Accept': 'application/json',
+        },
+    });
+
+    if (response.status === 404) {
+        return { exists: false };
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            `Jira API error berifying ${issueKey}: ${response.status}`
+        );
+    }
+
+    const data: any = await response.json();
+
+    return {
+        exists: true,
+        status: data.fields?.status?.name ?? 'unknown',
     };
 }
