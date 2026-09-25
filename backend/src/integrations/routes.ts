@@ -2,8 +2,6 @@ import { Router, Response } from 'express';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db/connection';
 import { encrypt } from '../utils/crypto';
-import { hasOwn } from 'openai/core';
-import { Connection } from 'pg';
 
 const router = Router();
 
@@ -26,7 +24,7 @@ router.post('/jira/connect', async (req: AuthenticatedRequest, res: Response):
     try {
         // verify workspace owner
         const workspaceCheck = await query(
-            `SELECT id from wokspaces WHERE id = $1 AND owner_id = $2`,
+            `SELECT id from workspaces WHERE id = $1 AND owner_id = $2`,
             [workspaceId, userId]
         );
 
@@ -71,10 +69,10 @@ router.post('/jira/connect', async (req: AuthenticatedRequest, res: Response):
 
         // response _ without exposing credentials
         res.status(201).json({
-            message: 'Jira integration connected successfullt.',
+            message: 'Jira integration connected successfully.',
             Connection: {
                 id: saved.id,
-                workspaceId: saved.workspaceId,
+                workspace_id: saved.workspace_id,
                 provider: saved.provider,
                 created_at: saved.created_at,
                 expires_at: saved.expires_at,
@@ -87,3 +85,54 @@ router.post('/jira/connect', async (req: AuthenticatedRequest, res: Response):
         });
     }
 });
+
+// GET /api/integrations/jira/status?workspaceId=
+// check if Jira is connected
+router.get('/jira/status', async (req: AuthenticatedRequest, res: Response):
+    Promise<void> => {
+    const { workspaceId } = req.query;
+    const userId = req.user!.userId;
+
+    if (!workspaceId) {
+        res.status(400).json({
+            error: 'workspaceId is required.'
+        });
+        return;
+    }
+
+    try {
+        const result = await query(
+            `SELECT ic.id, ic.expires_at, ic.created_at
+            FROM integration_connections ic
+            JOIN workspaces w ON ic.workspace_id = w.id
+            WHERE ic.workspace_id = $1
+                AND w.owner_id = $2
+                AND ic.provider = 'jira'`,
+            [workspaceId, userId]
+        );
+
+        if (!result.rowCount || result.rowCount === 0) {
+            res.json({
+                connected: false
+            });
+            return;
+        }
+
+        const conn = result.rows[0];
+        const isExpired = conn.expires_at ? new Date(conn.expires_at) < new Date() : false;
+
+        res.json({
+            connected: true,
+            isExpired,
+            expiresAt: conn.expires_at,
+            connectedAt: conn.created_at,
+        });
+    } catch (err: any) {
+        console.error('[integrations] Status check failed:', err.message);
+        res.status(500).json({
+            error: 'Failed to check integration status.'
+        });
+    }
+});
+
+export default router;
