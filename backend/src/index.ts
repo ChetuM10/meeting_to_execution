@@ -6,6 +6,7 @@ import authRouter from './auth/routes';
 import meetingRouter from './meetings/routes';
 import workflowRouter from './workflow/routes';
 import projectRouter from './projects/routes';
+import integrationsRouter from './integrations/routes';
 
 // load .env
 dotenv.config();
@@ -26,6 +27,7 @@ app.use('/api/meetings', meetingRouter);
 app.use('/api/workflow-runs', workflowRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/projects', projectRouter);
+app.use('/api/integrations', integrationsRouter);
 
 // heath
 app.get('/health', (_req, res) => {
