@@ -102,7 +102,7 @@ export async function verifyJiraIssue(
 
     if (!response.ok) {
         throw new Error(
-            `Jira API error berifying ${issueKey}: ${response.status}`
+            `Jira API error verifying ${issueKey}: ${response.status}`
         );
     }
 
