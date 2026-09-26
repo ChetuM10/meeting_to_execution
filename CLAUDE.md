@@ -372,9 +372,9 @@ On `POST /meetings`, hash the raw transcript. If `(project_id, transcript_hash)`
 | #   | Milestone                                                                             | Status      |
 | --- | ------------------------------------------------------------------------------------- | ----------- |
 | 1   | Postgres schema + auth + workspace/project/meeting CRUD (no AI yet)                   | DONE        |
-| 2   | Extraction function in isolation (LLM call + Zod validation, no graph yet)            | NOT STARTED |
-| 3   | Cross-meeting memory: historical context fetch + open-question resolution logic       | NOT STARTED |
-| 4   | Wrap in LangGraph.js — full graph with retry loop + interrupt node                    | NOT STARTED |
+| 2   | Extraction function in isolation (LLM call + Zod validation, no graph yet)            | DONE        |
+| 3   | Cross-meeting memory: historical context fetch + open-question resolution logic       | DONE        |
+| 4   | Wrap in LangGraph.js — full graph with retry loop + interrupt node                    | DONE        |
 | 5   | Human review screen + genuine interrupt/resume (close tab, reopen, still there)       | NOT STARTED |
 | 6   | Jira tool (plain function first, MCP-wrapped after) + idempotency key logic           | NOT STARTED |
 | 7   | Verify step + failure-state UI (simulate Jira failure → clear error + retry button)   | NOT STARTED |

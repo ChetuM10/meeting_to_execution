@@ -70,7 +70,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response): Promise<voi
 router.post('/:id/approve', async (req: AuthenticatedRequest, res: Response):
     Promise<void> => {
     const { id } = req.params;
-    const { edited_action_items } = req.body;
+    const { edited_actions } = req.body;
     const userId = req.user!.userId;
 
     try {
@@ -104,9 +104,9 @@ router.post('/:id/approve', async (req: AuthenticatedRequest, res: Response):
         }
 
         // resume the graph with 'approved'
-        resumeWorkflow(id, 'approved', edited_action_items ?? undefined)
+        resumeWorkflow(id, 'approved', edited_actions ?? undefined)
             .catch((err) => {
-                console.error(`[workfloe-runs] Resume after approve failed for ${id}:`, err);
+                console.error(`[workflow-runs] Resume after approve failed for ${id}:`, err);
             });
 
         res.json({ status: 'executing' });
@@ -147,7 +147,7 @@ router.post('/:id/reject', async (req: AuthenticatedRequest, res: Response): Pro
             });
             return;
         }
-        // fire-and-forget: resume graph with rejection so it exits cleanly
+        // resume graph with rejection so it exits cleanly
         resumeWorkflow(id, 'rejected')
             .catch((err) => {
                 console.error(`[workflow-runs] Resume after reject failed for ${id}:`, err);

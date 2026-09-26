@@ -7,7 +7,7 @@ export function generateIdempotencyKey(
 ): string {
     const sortedPayload = JSON.stringify(payload, Object.keys(payload).sort());
 
-    const raw = `${workflowRunId}:${actionType}:${payload}`;
+    const raw = `${workflowRunId}:${actionType}:${sortedPayload}`;
 
     return createHash('sha256').update(raw).digest('hex');
 }

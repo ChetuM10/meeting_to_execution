@@ -11,7 +11,7 @@ async function getJiraCredentials(projectId: string): Promise<JiraCredentials |
         `SELECT ic.encrypted_token, ic.expires_at
         FROM integration_connections ic
         JOIN workspaces w ON ic.workspace_id = w.id
-        JOIN projects p ON [.workspace_id = w.id
+        JOIN projects p ON p.workspace_id = w.id
         WHERE p.id = $1 AND ic.provider = 'jira'`,
         [projectId]
     );
