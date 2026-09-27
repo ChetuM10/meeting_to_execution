@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "seed:jira": "ts-node scripts/seed-jira.ts"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",
