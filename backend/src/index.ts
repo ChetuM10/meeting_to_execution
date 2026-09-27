@@ -7,6 +7,7 @@ import meetingRouter from './meetings/routes';
 import workflowRouter from './workflow/routes';
 import projectRouter from './projects/routes';
 import integrationsRouter from './integrations/routes';
+import { initCheckpointer } from './workflow/checkpointer';
 
 // load .env
 dotenv.config();
@@ -29,7 +30,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/projects', projectRouter);
 app.use('/api/integrations', integrationsRouter);
 
-// heath
+// health
 app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
 });
@@ -40,9 +41,19 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     res.status(500).json({ error: 'Something went wrong.' });
 });
 
+async function startServer() {
+    try {
+        await initCheckpointer();
+        console.log('[checkpointer] Checkpointer initialized.');
+    } catch (err) {
+        console.error('[checkpointer] Failed to initialize checkpointer:', err);
+    }
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
+
+startServer();
 
 export default app;

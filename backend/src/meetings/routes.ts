@@ -2,7 +2,6 @@ import { Router, Response } from 'express';
 import { createHash } from 'crypto';
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth';
 import { query } from '../db/connection';
-import { initCheckpointer } from '../workflow/checkpointer';
 import { runWorkflow } from '../workflow/graph';
 
 const router = Router();
@@ -47,7 +46,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         let meetingId: string;
         try {
             const meetingResult = await query(
-                `INSERT INTO meetings (project_id, raw_tanscript, transcript_hash)
+                `INSERT INTO meetings (project_id, raw_transcript, transcript_hash)
                 VALUES ($1, $2, $3)
                 RETURNING id`,
                 [project_id, transcript.trim(), transcriptHash]
@@ -73,12 +72,10 @@ router.post('/', async (req: AuthenticatedRequest, res: Response): Promise<void>
         const workflowRunId = workflowResult.rows[0].id;
 
         // 6 - run the workflow in the background
-        // no await - we want the APi to respond immediately
-        initCheckpointer()
-            .then(() => runWorkflow(transcript.trim(), project_id, workflowRunId))
-            .catch((err) => {
-                console.error(`[meetings] Background workflow dailed for ${workflowRunId}:`, err);
-            });
+        // no await - we want the API to respond immediately
+        runWorkflow(transcript.trim(), project_id, workflowRunId).catch((err) => {
+            console.error(`[meetings] Background workflow failed for ${workflowRunId}:`, err);
+        });
 
         // respond immediately
         res.status(201).json({
