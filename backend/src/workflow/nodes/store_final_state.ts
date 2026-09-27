@@ -37,7 +37,7 @@ export async function storeFinalStateNode(
         const extraction = state.validated_extraction;
 
         // 1 - Insert decisions
-        const decisionIdByContent = new Map<string, number>();
+        const decisionIdByContent = new Map<string, string>();
         for (const d of extraction.decisions) {
             const res = await query(
                 `INSERT INTO decisions
