@@ -74,7 +74,6 @@ const workflow = new StateGraph(WorkflowAnnotation)
 
 export const graph = workflow.compile({
     checkpointer,
-    interruptBefore: ['human_review'],
 });
 
 // reads the current graph state from the checkpointer
@@ -163,6 +162,8 @@ export async function resumeWorkflow(
 
         if (decision === 'rejected') {
             await updateWorkflowStatus(workflowId, 'rejected');
+        } else if (result.error) {
+            await updateWorkflowStatus(workflowId, 'failed');
         } else {
             await updateWorkflowStatus(workflowId, 'completed');
         }

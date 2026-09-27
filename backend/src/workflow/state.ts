@@ -14,7 +14,7 @@ export interface proposedAction {
     task: string;
     owner: string;
     deadline: string;
-    confidence: string;
+    confidence: number;
     jira_project_key?: string;
     issue_type?: string;
 }
