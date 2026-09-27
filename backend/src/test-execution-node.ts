@@ -52,7 +52,7 @@ async function runExecutionNodeTest() {
                 deadline: '2026-10-10',
                 jira_project_key: 'M2E',
                 issue_type: 'Task',
-                confidence: '0.95',
+                confidence: 0.95,
             },
         ],
     };

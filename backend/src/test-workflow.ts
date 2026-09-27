@@ -23,15 +23,31 @@ async function main() {
 
         const transcript = fs.readFileSync(transcriptPath, 'utf-8');
 
-        // 3 - setup test IDs
-        const projectId = randomUUID();
+        // 3 - real project for test
+        const { query } = await import('./db/connection');
+        const projectId = '84e87b92-5791-4414-af67-3ff22b47bdee';
+        const meetingId = randomUUID();
         const workflowId = randomUUID();
 
-        console.log(`\n[Phase 1] Starting workflow run...`);
-        console.log(`Project ID: ${projectId}`);
-        console.log(`Workflow ID: ${workflowId}`);
+        await query(
+            `INSERT INTO meetings (id, project_id, raw_transcript, transcript_hash)
+             VALUES ($1, $2, $3, $4)`,
+            [meetingId, projectId, transcript, randomUUID()]
+        );
 
-        // 4- run workflow
+        await query(
+            `INSERT INTO workflow_runs (id, meeting_id, status)
+             VALUES ($1, $2, 'processing')`,
+            [workflowId, meetingId]
+        );
+
+        console.log(`\n[Setup] Real Postgres chain created:`);
+        console.log(`Project ID:     ${projectId}`);
+        console.log(`Meeting ID:     ${meetingId}`);
+        console.log(`Workflow ID:    ${workflowId}`);
+
+        // 4 - run workflow
+        console.log(`\n[Phase 1] Starting workflow run...`);
         const initialResult = await runWorkflow(transcript, projectId, workflowId);
 
         console.log('\n-------- Workflow paused for Human Review --------');
@@ -41,7 +57,7 @@ async function main() {
         console.log('\nAmbiguity Flags:');
         console.log(JSON.stringify(initialResult.ambiguity_flags, null, 2));
 
-        // 5 - simulate human review
+        // 5 - human review
         console.log('\n[Phase 2] Simulating human "Approve"...');
 
         const finalResult = await resumeWorkflow(workflowId, 'approved');
