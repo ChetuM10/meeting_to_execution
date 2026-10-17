@@ -20,6 +20,7 @@ export async function humanReviewNode(
         validated_extraction: state.validated_extraction,
     });
 
+    // this is executed when resumeWorkflow dispatches Command({ resume: payload })s 
     const decision = reviewResult.decision as 'approved' | 'rejected';
     const editedActions = reviewResult.edited_actions ?? null;
 

@@ -5,7 +5,7 @@ import { encrypt, decrypt } from '../src/utils/crypto';
 dotenv.config();
 
 async function seedJiraCredentials() {
-    // 1. Guard against accidental run in production
+    // 1. Guards against accidental run in production
     if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SEED !== 'true') {
         console.error('Refusing to run seed script in production without ALLOW_SEED=true');
         process.exit(1);
@@ -13,7 +13,7 @@ async function seedJiraCredentials() {
 
     console.log('Encrypting and saving Jira credentials to Postgres...\n');
 
-    // 2. Allow passing workspace ID via CLI arg or env, with fallback
+    // 2. Allows passing workspace ID via CLI arg or env, with fallback
     const workspaceId = process.argv[2] || process.env.SEED_WORKSPACE_ID || '4ee051e4-d2dc-4c9f-9ee7-2a0fd7181ba3';
     const rawUrl = process.env.JIRA_BASE_URL || '';
     const email = process.env.JIRA_EMAIL || '';

@@ -14,6 +14,7 @@ export async function detectAmbiguityNode(
     const flags: AmbiguityFlag[] = [];
     const extraction = state.validated_extraction;
 
+    // check deicisons
     extraction.decisions.forEach((d, i) => {
         if (d.confidence < CONFIDENCE_THRESHOLD) {
             flags.push({
@@ -24,6 +25,7 @@ export async function detectAmbiguityNode(
         }
     });
 
+    // check action items
     extraction.action_items.forEach((a, i) => {
         (a.ambiguity_flags ?? []).forEach((flagType) => {
             flags.push({

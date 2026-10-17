@@ -106,6 +106,7 @@ export async function executeApprovedActionsNode(
             projectKey
         };
 
+        // generate uniaue hash
         const idempotencyKey = generateIdempotencyKey(
             state.workflow_id,
             'create_jira_issue',
@@ -127,7 +128,7 @@ export async function executeApprovedActionsNode(
             }
         }
 
-        // check if already executed
+        // check if already executed in Postgres
         try {
             const existing = await query(
                 `SELECT external_id, status FROM execution_logs
@@ -135,6 +136,7 @@ export async function executeApprovedActionsNode(
                 [idempotencyKey]
             );
 
+            // if found, then reuse external_id and skip Jira API
             if (existing.rowCount && existing.rowCount > 0) {
                 console.log(
                     `[execute] Action ${action.id} already executed. Skipping.`
@@ -144,7 +146,7 @@ export async function executeApprovedActionsNode(
                     status: existing.rows[0].status === 'success' ? 'success' : 'failure',
                     jira_issue_key: existing.rows[0].external_id ?? undefined,
                 });
-                continue;
+                continue; //Bypasses createJiraIssue
             }
         } catch (err) {
             console.error(`[execute] Idempotency check failed for ${action.id}:`, err);
